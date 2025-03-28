@@ -2,49 +2,62 @@
 header("Content-Type: application/json");
 require_once "../../config/db.php";
 
-$data = json_decode(file_get_contents("php://input"), true);
+$name = $_POST["name"] ?? null;
+$detail = $_POST["detail"] ?? null;
+$date = $_POST["date"] ?? null;
+$type = $_POST["type"] ?? null;
+$status = $_POST["status"] ?? "active";
 
-if(!isset($data["name"]) || !isset($data["detail"]) || !isset($data["date"]) || !isset($data["type"])){
+if(!$name || !$detail || !$date || !$type){
     echo json_encode([
         "success" => false,
-        "message"=> "Lütfen Eksik Alanları Doldurunuz"
+        "message" => "Lütfen eksik alanları doldurunuz"
     ]);
     exit;
 }
 
-$name = $data["name"];
-$detail = $data["detail"];
-$date = $data["date"];
-$type = $data["type"];
-$status = $data["status"] ?? "active";
+$imagePath = null;
+
+if(isset($_FILES["image"]) && $_FILES["image"]["error"] === 0) {
+    $targetDir = "../../uploads/";
+    $fileName =uniqid()."_".basename($_FILES["image"]["name"]);
+    $targetPath = $targetDir.$fileName;
+
+    if(move_uploaded_file($_FILES["image"]["tmp_name"],$targetPath)){
+        $imagePath = "uploads/" . $fileName;
+    }
+}
 
 try {
-    $stmt = $conn->prepare("INSERT INTO events(name,detail,date,type,status) VALUES (:name,:detail,:date,:type,:status)");
+    $stmt = $conn->prepare("INSERT INTO events(name,detail,date,type,status,image)
+    VALUES (:name,:detail,:date,:type,:status,:image)");
     $success = $stmt->execute([
-        ':name' => $name,
-        ':detail' => $detail,
-        ':date' => $date,
-        ':type' => $type,
-        ':status' => $status
+        ":name"=> $name,
+        ":detail"=> $detail,
+        ":date"=> $date,
+        ":type"=> $type,
+        ":status"=> $status,
+        ":image" => $imagePath,
     ]);
 
-    if($success){
-        echo json_encode([
-            "success"=> true,
-            "message"=> "Etkinlik başarıyla eklendi"
-        ]);
-    } else {
+    if(!$success){
         echo json_encode([
             "success"=> false,
-            "message"=> "Veritabanına ekleme işlemi başarısız"
+            "message"=> "veritabanına ekleme başarısız"
+        ]);
+        exit;
+    }
+    else{
+        echo json_encode([
+            "success"=> true,
+            "message"=> "veritabanına ekleme başarılı"
         ]);
     }
-
-} catch (PDOException $e) {
+}catch(PDOException $e){
     echo json_encode([
-        "success" => false,
-        "message" => "Veritabanı hatası",
-        "error" => $e->getMessage()
+        "success"=> false,
+        "message"=> "veritabanı bağlantı hatası",
+        "error"=> $e->getMessage()
     ]);
 }
 ?>

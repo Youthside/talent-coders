@@ -5,11 +5,11 @@ require_once "../../config/db.php";
 try {
     $stmt = $conn->prepare("SELECT * FROM events ORDER BY date ASC ");
     $stmt->execute();
-    $evets = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     echo json_encode([
         "success" => true,
-        "data"=> $evets
+        "data"=> $events
     ]);
 }
 catch (PDOException $e) {
